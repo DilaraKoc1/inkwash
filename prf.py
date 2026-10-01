@@ -22,8 +22,14 @@ if __name__ == "__main__":
     d = keyed_uniform("secret", 43, 1337)
     print("different context:", d)
 
-    # Requirement 4: uniformly distributed
+    # Requirement 4: uniformly distributed, for several previous tokens
     gamma = 0.25
     n = 100_000
-    green = sum(keyed_uniform("secret", 42, t) < gamma for t in range(n))
-    print(f"green fraction: {green / n:.4f}  (expected ~{gamma})")
+    prev_tokens = [42, 13, 279, 785, 8251, 5517, 389, 1000, 50000, 151000]
+    fractions = []
+    for prev in prev_tokens:
+        green = sum(keyed_uniform("secret", prev, t) < gamma for t in range(n))
+        fractions.append(green / n)
+        print(f"prev token {prev:>6}: {green:,} of {n:,} green ({green / n:.2%})")
+    print(f"range: {min(fractions):.2%} to {max(fractions):.2%}, "
+          f"average {sum(fractions) / len(fractions):.2%}  (expected ~{gamma:.0%})")
