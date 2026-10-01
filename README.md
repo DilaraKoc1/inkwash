@@ -24,7 +24,7 @@ To check a text, the detector uses the key to recompute the green lists and coun
 
 Without the key, the green lists look like noise. Only the key holder can check for the watermark.
 
-In my first test, a simulated 200-token text built only from green tokens scored z = 24.4. Random tokens scored z = 0.04, and the same green text checked with the wrong key scored z = -0.29.
+In my first test, a simulated 200-token text built only from green tokens scored z = 24.4. Random tokens scored z = 0.04, and the same green text checked with the wrong key scored z = 0.37.
 
 The scheme follows Kirchenbauer et al., [A Watermark for Large Language Models](https://arxiv.org/abs/2301.10226) (2023).
 

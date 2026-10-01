@@ -9,21 +9,21 @@ def keyed_uniform(key: str, prev_token: int, token: int) -> float:
 
 
 if __name__ == "__main__":
-    # Anforderung 1: deterministisch
-    a = keyed_uniform("geheim", 42, 1337)
-    b = keyed_uniform("geheim", 42, 1337)
-    print("deterministisch:", a == b, a)
+    # Requirement 1: deterministic
+    a = keyed_uniform("secret", 42, 1337)
+    b = keyed_uniform("secret", 42, 1337)
+    print("deterministic:", a == b, a)
 
-    # Anforderung 2: anderer Schlüssel -> andere Zahl
-    c = keyed_uniform("anderer-key", 42, 1337)
-    print("anderer Schlüssel:", c)
+    # Requirement 2: different key -> different number
+    c = keyed_uniform("other-key", 42, 1337)
+    print("different key:", c)
 
-    # Anforderung 3: anderer Kontext -> andere Zahl
-    d = keyed_uniform("geheim", 43, 1337)
-    print("anderer Kontext:", d)
+    # Requirement 3: different context -> different number
+    d = keyed_uniform("secret", 43, 1337)
+    print("different context:", d)
 
-    # Anforderung 4: gleichmäßig verteilt
+    # Requirement 4: uniformly distributed
     gamma = 0.25
     n = 100_000
-    green = sum(keyed_uniform("geheim", 42, t) < gamma for t in range(n))
-    print(f"Anteil grün: {green / n:.4f}  (erwartet ~{gamma})")
+    green = sum(keyed_uniform("secret", 42, t) < gamma for t in range(n))
+    print(f"green fraction: {green / n:.4f}  (expected ~{gamma})")

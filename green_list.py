@@ -27,18 +27,18 @@ if __name__ == "__main__":
     import random
 
     random.seed(0)
-    key = "geheim"
+    key = "secret"
     vocab_size = 50_000
     length = 200
 
     human = [random.randrange(vocab_size) for _ in range(length)]
-    print("Mensch:      ", detect(key, human))
+    print("human:      ", detect(key, human))
 
     wm = [random.randrange(vocab_size)]
     while len(wm) < length:
         candidate = random.randrange(vocab_size)
         if is_green(key, wm[-1], candidate):
             wm.append(candidate)
-    print("KI (WM):     ", detect(key, wm))
+    print("watermarked:", detect(key, wm))
 
-    print("falscher Key:", detect("anderer-key", wm))
+    print("wrong key:  ", detect("other-key", wm))
