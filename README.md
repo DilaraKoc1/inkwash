@@ -20,11 +20,30 @@ An LLM writes one token at a time. At each step it gives every token in its voca
 
 The watermark changes that pick. A secret key and the previous token decide which 25% of the vocabulary counts as "green" for this step. The generator gives green tokens a small bonus. When several words fit equally well, it tends to choose a green one. The text still reads normally.
 
-To check a text, the detector uses the key to recompute the green lists and counts how many tokens are green. A writer who doesn't know the key lands on green about 25% of the time. A watermarked text lands there far more often. The z-score measures how far the count sits above 25%. Above z = 4, the chance of a human text getting there is about 3 in 100,000.
+To check a text, the detector uses the key to recompute the green lists and counts how many tokens are green. For a writer who doesn't know the key, every token is like a coin that lands on green with a chance of 0.25. A watermarked text lands on green far more often.
+
+The detector turns the count into a z-score. For n scored tokens:
+
+```text
+expected = n × 0.25                  green tokens chance alone would give
+spread   = √(n × 0.25 × 0.75)        how far the count typically lands from that
+z        = (green − expected) / spread
+```
+
+z says how many spreads the count sits above what chance would give. Texts written without the key land between −2 and 2 about 95% of the time, and above 4 only about 3 times in 100,000. z = 4 is the usual threshold.
 
 Without the key, the green lists look like noise. Only the key holder can check for the watermark.
 
-In my first test, a simulated 200-token text built only from green tokens scored z = 24.4. Random tokens scored z = 0.04, and the same green text checked with the wrong key scored z = 0.37.
+In my first test, I simulated texts of 200 tokens, which gives 199 scored pairs. So expected = 199 × 0.25 = 49.75 and spread = √(199 × 0.25 × 0.75) ≈ 6.11:
+
+```text
+                                    green   z
+random tokens                          50   (50 − 49.75) / 6.11  =  0.04
+only green tokens                     199   (199 − 49.75) / 6.11 = 24.4
+only green tokens, wrong key           52   (52 − 49.75) / 6.11  =  0.37
+```
+
+The [blog post](https://www.dilarakoc.com/blog/ai-watermark-part-1/) walks through every step, including how the key turns into a number between 0 and 1.
 
 The scheme follows Kirchenbauer et al., [A Watermark for Large Language Models](https://arxiv.org/abs/2301.10226) (2023).
 
