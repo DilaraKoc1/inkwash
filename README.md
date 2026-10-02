@@ -8,7 +8,7 @@ Since August 2026, the EU AI Act (Art. 50) requires AI providers to mark the con
 
 People will start relying on that. Companies want to flag AI-written phishing mails and fake job applications. Platforms want to trace disinformation. Compliance teams need evidence.
 
-Every protection people rely on becomes a target. This project asks three questions:
+Once people rely on a watermark, attackers have a reason to remove it or to fake it. This project asks three questions:
 
 - How easily can a text watermark be removed, and what does it cost the attacker?
 - Can a watermark be forged onto text that no AI wrote?
@@ -22,7 +22,7 @@ The watermark changes that pick. A secret key and the previous token decide whic
 
 To check a text, the detector uses the key to recompute the green lists and counts how many tokens are green. For a writer who doesn't know the key, every token is like a coin that lands on green with a chance of 0.25. A watermarked text lands on green far more often.
 
-The detector turns the count into a z-score. For n scored tokens:
+The detector turns the count into a z-score. For n scored pairs (previous token, token):
 
 ```text
 expected = n × 0.25                  green tokens chance alone would give
@@ -43,7 +43,7 @@ only green tokens                     199   (199 − 49.75) / 6.11 = 24.4
 only green tokens, wrong key           52   (52 − 49.75) / 6.11  =  0.37
 ```
 
-The [blog post](https://www.dilarakoc.com/blog/ai-watermark-part-1/) walks through every step, including how the key turns into a number between 0 and 1.
+The [blog post](https://www.dilarakoc.com/blog/ai-watermark-part-1/) explains each step, including how the key turns into a number between 0 and 1.
 
 The scheme follows Kirchenbauer et al., [A Watermark for Large Language Models](https://arxiv.org/abs/2301.10226) (2023).
 
@@ -56,6 +56,7 @@ Work in progress. I build this step by step and write about each step on my blog
 - Green-list detector with z-score
 
 **Next**
+- Soft watermark: green tokens get a bonus instead of being forced
 - Watermark generation with a real LLM
 - Attacks: unicode tricks, word edits, paraphrasing
 - Comparison with SynthID-Text
@@ -64,13 +65,13 @@ Work in progress. I build this step by step and write about each step on my blog
 
 ## Quickstart
 
+The code so far only uses the Python standard library, so there is nothing to install.
+
 ```bash
 git clone https://github.com/DilaraKoc1/inkwash.git
 cd inkwash
-python -m venv .venv
-.venv\Scripts\activate          # Linux/macOS: source .venv/bin/activate
-pip install numpy
-python green_list.py
+python prf.py           # checks that the random numbers behave as required
+python green_list.py    # runs the detector on simulated texts
 ```
 
 ## Project structure

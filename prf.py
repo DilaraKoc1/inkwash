@@ -1,7 +1,14 @@
+"""Keyed pseudo-random function: the source of randomness for the green list."""
+
 import hashlib
 
 
 def keyed_uniform(key: str, prev_token: int, token: int) -> float:
+    """Return a number in [0, 1) that depends on the key, the previous token and the token.
+
+    The same inputs always give the same number. Without the key the numbers
+    look random, and they are spread evenly between 0 and 1.
+    """
     message = f"{key} | {prev_token} | {token}"
     digest = hashlib.sha256(message.encode()).digest()
     number = int.from_bytes(digest[:8], "big")
