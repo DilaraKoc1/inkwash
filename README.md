@@ -34,7 +34,13 @@ z says how many spreads the count sits above what chance would give. Texts writt
 
 Without the key, the green lists look like noise. Only the key holder can check for the watermark.
 
-In my first test, I simulated texts of 200 tokens, which gives 199 scored pairs. So expected = 199 × 0.25 = 49.75 and spread = √(199 × 0.25 × 0.75) ≈ 6.11:
+The scheme follows Kirchenbauer et al., [A Watermark for Large Language Models](https://arxiv.org/abs/2301.10226) (2023).
+
+## Results so far
+
+### Detector on simulated texts
+
+I simulated texts of 200 tokens, which gives 199 scored pairs. So expected = 199 × 0.25 = 49.75 and spread = √(199 × 0.25 × 0.75) ≈ 6.11:
 
 ```text
                                     green   z
@@ -45,7 +51,33 @@ only green tokens, wrong key           52   (52 − 49.75) / 6.11  =  0.37
 
 The [blog post](https://www.dilarakoc.com/blog/ai-watermark-part-1/) explains each step, including how the key turns into a number between 0 and 1.
 
-The scheme follows Kirchenbauer et al., [A Watermark for Large Language Models](https://arxiv.org/abs/2301.10226) (2023).
+### Soft watermark on a toy model
+
+A real model cannot pick only green tokens, so the generator adds a bonus `delta` to the scores of green tokens instead. Red tokens stay possible, just less likely. Adding `delta` to a score multiplies that token's weight by e^delta, so `delta = 2` makes a green token about 7.4 times as likely as before.
+
+To see how strong the watermark gets, `experiment.py` uses a toy model that draws random scores for a vocabulary of 1,000 tokens. Its `sharpness` sets how many tokens are real options at each step: at 0.5 almost every token is about equally likely, at 5.0 a handful of tokens take most of the probability. That stands in for the difference between an open sentence and one with a single right answer.
+
+One text of 200 tokens per setting:
+
+```text
+sharpness  delta   green     z
+  0.5       0.0     25 %    0.0
+  0.5       1.0     50 %    8.1
+  0.5       2.0     70 %   14.8
+  0.5       4.0     96 %   23.3
+  2.0       0.0     21 %   -1.4
+  2.0       1.0     54 %    9.4
+  2.0       2.0     65 %   13.1
+  2.0       4.0     93 %   22.1
+  5.0       0.0     25 %    0.0
+  5.0       1.0     36 %    3.6
+  5.0       2.0     55 %    9.7
+  5.0       4.0     81 %   18.2
+```
+
+Without a bonus, the share stays at the 25% chance gives. A larger bonus gives more green, but even at `delta = 4` some red tokens get through. When the model has few real options (sharpness 5.0) and the bonus is small, the watermark stays below z = 4 on 200 tokens, although every token was generated with it.
+
+Each row is a single text, so the numbers carry noise. The row for sharpness 2.0 and delta 1.0 scores higher than the one for 0.5, which a single run can do.
 
 ## Status
 
@@ -54,10 +86,13 @@ Work in progress. I build this step by step and write about each step on my blog
 **Done**
 - Keyed pseudo-random function
 - Green-list detector with z-score
+- Soft watermark: green tokens get a bonus instead of being forced
+- Toy experiment on how the bonus and the model's certainty change the signal
 
 **Next**
-- Soft watermark: green tokens get a bonus instead of being forced
+- Repeat the toy measurements over many texts per setting
 - Watermark generation with a real LLM
+- Count each (previous token, token) pair only once, so repetitive text cannot look watermarked
 - Attacks: unicode tricks, word edits, paraphrasing
 - Comparison with SynthID-Text
 - Forging watermarks (spoofing)
@@ -65,21 +100,26 @@ Work in progress. I build this step by step and write about each step on my blog
 
 ## Quickstart
 
-The code so far only uses the Python standard library, so there is nothing to install.
+You need Python 3.11 or newer and numpy.
 
 ```bash
 git clone https://github.com/DilaraKoc1/inkwash.git
 cd inkwash
+pip install numpy
 python prf.py           # checks that the random numbers behave as required
 python green_list.py    # runs the detector on simulated texts
+python experiment.py    # measures how the bonus and the model's certainty change the signal
 ```
+
+`experiment.py` takes about half a minute, because it computes a SHA-256 hash for every token of the vocabulary at every step.
 
 ## Project structure
 
 | File | Purpose |
 |---|---|
 | `prf.py` | Keyed pseudo-random function: turns (key, previous token, token) into a number in [0, 1) |
-| `green_list.py` | Decides which tokens are green and detects the watermark via z-score |
+| `green_list.py` | Colour rule, bonus for green tokens, detector with z-score, and the colour of each token |
+| `experiment.py` | Toy model that measures how the bonus and the model's certainty change the watermark |
 
 ## Responsible use
 

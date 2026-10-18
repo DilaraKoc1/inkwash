@@ -2,12 +2,21 @@
 
 import math
 
+import numpy as np
+
 from prf import keyed_uniform
 
 
 def is_green(key: str, prev_token: int, token: int, gamma: float = 0.25) -> bool:
     """Return True if token is green after prev_token, i.e. its number is below gamma."""
     return keyed_uniform(key, prev_token, token) < gamma
+
+
+def apply_watermark(logits: np.ndarray, key: str, prev_token: int,
+                    gamma: float = 0.25, delta: float = 2.0) -> np.ndarray:
+    """Return a copy of logits with delta added to every green token."""
+    green_mask = np.array([is_green(key, prev_token, token_id, gamma) for token_id in range(len(logits))])
+    return logits + delta * green_mask
 
 
 def detect(key: str, token_ids: list[int], gamma: float = 0.25) -> dict:
@@ -36,6 +45,17 @@ def detect(key: str, token_ids: list[int], gamma: float = 0.25) -> dict:
     return {"n": n, "green": green, "green_fraction": green / n, "z": z}
 
 
+def colour_tokens(key: str, token_ids: list[int], gamma: float = 0.25) -> list[str]:
+    """Return 'green' or 'red' for each token after the first, as the detector sees it."""
+    colours = []
+    for i in range(1, len(token_ids)):
+        if is_green(key, token_ids[i - 1], token_ids[i], gamma):
+            colours.append("green")
+        else:
+            colours.append("red")
+    return colours
+
+
 if __name__ == "__main__":
     import random
 
@@ -55,3 +75,7 @@ if __name__ == "__main__":
     print("watermarked:", detect(key, wm))
 
     print("wrong key:  ", detect("other-key", wm))
+
+    logits = np.zeros(10)
+    print("before:", logits)
+    print("after: ", apply_watermark(logits, key, prev_token=42))
