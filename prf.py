@@ -35,7 +35,7 @@ if __name__ == "__main__":
     prev_tokens = [42, 13, 279, 785, 8251, 5517, 389, 1000, 50000, 151000]
     fractions = []
     for prev in prev_tokens:
-        green = sum(keyed_uniform("secret", prev, t) < gamma for t in range(n))
+        green = sum(keyed_uniform("secret", prev, token_id) < gamma for token_id in range(n))
         fractions.append(green / n)
         print(f"prev token {prev:>6}: {green:,} of {n:,} green ({green / n:.2%})")
     print(f"range: {min(fractions):.2%} to {max(fractions):.2%}, "

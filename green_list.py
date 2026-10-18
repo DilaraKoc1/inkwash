@@ -1,6 +1,7 @@
-"""Green-list watermark (Kirchenbauer et al., 2023): colour rule and detector."""
+"""Green-list watermark (Kirchenbauer et al., 2023): colour rule, bonus and detector."""
 
 import math
+from functools import lru_cache
 
 import numpy as np
 
@@ -12,11 +13,22 @@ def is_green(key: str, prev_token: int, token: int, gamma: float = 0.25) -> bool
     return keyed_uniform(key, prev_token, token) < gamma
 
 
+@lru_cache(maxsize=None)
+def green_mask(key: str, prev_token: int, vocab_size: int, gamma: float = 0.25) -> np.ndarray:
+    """Return a read-only True/False array marking which tokens are green after prev_token.
+
+    The result is cached, so every call with the same arguments gets the same array.
+    It is read-only so that no caller can change the green list for everyone else.
+    """
+    mask = np.array([is_green(key, prev_token, token_id, gamma) for token_id in range(vocab_size)])
+    mask.setflags(write=False)
+    return mask
+
+
 def apply_watermark(logits: np.ndarray, key: str, prev_token: int,
                     gamma: float = 0.25, delta: float = 2.0) -> np.ndarray:
     """Return a copy of logits with delta added to every green token."""
-    green_mask = np.array([is_green(key, prev_token, token_id, gamma) for token_id in range(len(logits))])
-    return logits + delta * green_mask
+    return logits + delta * green_mask(key, prev_token, len(logits), gamma)
 
 
 def detect(key: str, token_ids: list[int], gamma: float = 0.25) -> dict:
@@ -35,8 +47,8 @@ def detect(key: str, token_ids: list[int], gamma: float = 0.25) -> dict:
     n = 0
     for i in range(1, len(token_ids)):
         prev_token = token_ids[i - 1]
-        token = token_ids[i]
-        if is_green(key, prev_token, token, gamma):
+        token_id = token_ids[i]
+        if is_green(key, prev_token, token_id, gamma):
             green += 1
         n += 1
     expected = n * gamma
@@ -75,7 +87,3 @@ if __name__ == "__main__":
     print("watermarked:", detect(key, wm))
 
     print("wrong key:  ", detect("other-key", wm))
-
-    logits = np.zeros(10)
-    print("before:", logits)
-    print("after: ", apply_watermark(logits, key, prev_token=42))
