@@ -177,8 +177,10 @@ production systems. The goal is to show defenders where the limits are, not to p
 
 ## Blog
 
-The full write-up, step by step, starts with
-[Part 1: Building One](https://www.dilarakoc.com/blog/ai-watermark-part-1/).
+The full write-up, step by step:
+
+- [Part 1: Building One](https://www.dilarakoc.com/blog/ai-watermark-part-1/)
+- [Part 2: A Soft Watermark](https://www.dilarakoc.com/blog/ai-watermark-part-2/)
 
 ## License
 

@@ -5,3 +5,5 @@ __pycache__
 .env
 make_hero.py
 hero.png
+make_hero_part2.py
+hero_part2.png
