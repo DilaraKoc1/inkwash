@@ -30,7 +30,7 @@ def test_result_is_in_unit_interval():
 
 
 def test_uniform_for_several_previous_tokens():
-    """Requirement 4: about gamma of all tokens are green, for every context."""
+    """Requirement 4: about gamma of all tokens are green, for several contexts."""
     gamma = 0.25
     n = 100_000
     # Standard deviation of the green fraction if the numbers are uniform.

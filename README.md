@@ -23,9 +23,9 @@ Once people rely on a watermark, attackers have a reason to remove it or to fake
 An LLM writes one token at a time. At each step it gives every token in its vocabulary a score and then picks one at
 random, weighted by probabilities computed from those scores.
 
-The watermark changes that pick. A secret key and the previous token decide which 25% of the vocabulary counts as
-"green" for this step. The generator gives green tokens a small bonus. When several words fit equally well, it tends to
-choose a green one. The goal is that the text still reads normally.
+The watermark changes that pick. A secret key and the previous token decide which tokens count as "green" for this
+step, about 25% of the vocabulary. The generator gives green tokens a small bonus. When several words fit equally
+well, it tends to choose a green one. The goal is that the text still reads normally.
 
 To check a text, the detector uses the key to recompute the green lists and counts how many tokens are green. For a
 writer who doesn't know the key, every token is like a coin that lands on green with a chance of 0.25. A watermarked
@@ -40,11 +40,22 @@ z        = (green − expected) / spread
 ```
 
 z says how many spreads the count sits above what chance would give. Longer texts written without the key land between
-−2 and 2 about 95% of the time, and above 4 only about 3 times in 100,000. z = 4 is the usual threshold.
+−2 and 2 about 95% of the time. A bell curve puts about 3 in 100,000 above 4. The real share is a little higher,
+because with a chance of 0.25 the count leans to the right. For texts of 50 to 200 tokens, between about 5 and 15
+in 100,000 land above 4, depending on the exact length. z = 4 is the usual threshold.
 
 Without the key, the green lists look like noise. Only the key holder can check for the watermark.
 
 The scheme follows Kirchenbauer et al., [A Watermark for Large Language Models](https://arxiv.org/abs/2301.10226) (2023).
+One difference: their Algorithm 2 hashes the previous token, uses the hash to seed a random generator and splits the
+vocabulary into a green list of exactly 25% and a red list. inkwash gives each candidate token its own colour with a
+keyed function of (previous token, token), so a green list holds about 25%, a little more or less each time. This
+colour rule is close to their Algorithm 3 in Section 5, with one token of context. The bonus for green tokens is the
+one from Algorithm 2. For the detector it makes no difference, because without the key every token is green with a
+chance of 0.25 either way.
+
+I used Claude, an AI assistant by Anthropic, to summarise the paper for me and to support me in building this project
+along the lines of their scheme.
 
 ## Results so far
 
@@ -154,7 +165,7 @@ downloads about 3 GB on the first run. On a CPU the percentages come out differe
 | File | Purpose |
 |---|---|
 | `prf.py` | Keyed pseudo-random function: turns (key, previous token, token) into a number in [0, 1) with HMAC-SHA256 |
-| `test_prf.py` | Tests for `prf.py`: same inputs give the same number, a different key or previous token gives a different one, and about 25% of tokens are green after every previous token |
+| `test_prf.py` | Tests for `prf.py`: same inputs give the same number, a different key or previous token gives a different one, and about 25% of tokens are green after each of ten previous tokens |
 | `green_list.py` | Colour rule, bonus for green tokens, detector with z-score, and the colour of each token |
 | `experiment.py` | Toy model that measures how the bonus and the model's certainty change the watermark |
 | `qwen_candidates.py` | Qwen2.5 token ids, vocabulary size, top candidates after a prompt and the eight example cells from the blog post |
