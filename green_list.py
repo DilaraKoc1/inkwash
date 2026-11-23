@@ -1,7 +1,6 @@
 """Green-list watermark (Kirchenbauer et al., 2023): colour rule, bonus and detector."""
 
 import math
-from functools import lru_cache
 
 import numpy as np
 
@@ -10,25 +9,47 @@ from prf import keyed_uniform
 
 def is_green(key: str, prev_token: int, token: int, gamma: float = 0.25) -> bool:
     """Return True if token is green after prev_token, i.e. its number is below gamma."""
-    return keyed_uniform(key, prev_token, token) < gamma
+    number = keyed_uniform(key, prev_token, token)
+    return number < gamma
 
 
-@lru_cache(maxsize=None)
+_green_mask_cache = {}  # stores finished masks, keyed by (key, prev_token, vocab_size, gamma)
+
+
 def green_mask(key: str, prev_token: int, vocab_size: int, gamma: float = 0.25) -> np.ndarray:
     """Return a read-only True/False array marking which tokens are green after prev_token.
 
-    The result is cached, so every call with the same arguments gets the same array.
-    It is read-only so that no caller can change the green list for everyone else.
+    Position i in the array is True if token i is green. Building the array takes
+    one keyed_uniform call per token, so the result is stored in _green_mask_cache
+    and reused when the same arguments come again. Every caller gets the same
+    array, so it is read-only: otherwise one caller could change the green list
+    for everyone else.
     """
-    mask = np.array([is_green(key, prev_token, token_id, gamma) for token_id in range(vocab_size)])
+    cache_key = (key, prev_token, vocab_size, gamma)
+    if cache_key in _green_mask_cache:
+        return _green_mask_cache[cache_key]
+
+    colours = []
+    for token_id in range(vocab_size):
+        green = is_green(key, prev_token, token_id, gamma)
+        colours.append(green)
+
+    mask = np.array(colours)
     mask.setflags(write=False)
+    _green_mask_cache[cache_key] = mask
     return mask
 
 
 def apply_watermark(logits: np.ndarray, key: str, prev_token: int,
                     gamma: float = 0.25, delta: float = 2.0) -> np.ndarray:
-    """Return a copy of logits with delta added to every green token."""
-    return logits + delta * green_mask(key, prev_token, len(logits), gamma)
+    """Return a copy of logits with delta added to every green token.
+
+    The original logits are not changed.
+    """
+    mask = green_mask(key, prev_token, len(logits), gamma)
+    new_logits = logits.copy()
+    new_logits[mask] = logits[mask] + delta
+    return new_logits
 
 
 def detect(key: str, token_ids: list[int], gamma: float = 0.25) -> dict:
@@ -44,17 +65,19 @@ def detect(key: str, token_ids: list[int], gamma: float = 0.25) -> dict:
         raise ValueError("detect needs at least 2 tokens to score one pair")
 
     green = 0
-    n = 0
+    n = len(token_ids) - 1
     for i in range(1, len(token_ids)):
-        prev_token = token_ids[i - 1]
-        token_id = token_ids[i]
-        if is_green(key, prev_token, token_id, gamma):
+        if is_green(key, token_ids[i - 1], token_ids[i], gamma):
             green += 1
-        n += 1
+
     expected = n * gamma
-    spread = math.sqrt(n * gamma * (1 - gamma))
-    z = (green - expected) / spread
-    return {"n": n, "green": green, "green_fraction": green / n, "z": z}
+    variance = n * gamma * (1 - gamma)
+    spread = math.sqrt(variance)
+    difference = green - expected
+    z = difference / spread
+    green_fraction = green / n
+
+    return {"n": n, "green": green, "green_fraction": green_fraction, "z": z}
 
 
 def colour_tokens(key: str, token_ids: list[int], gamma: float = 0.25) -> list[str]:
