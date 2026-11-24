@@ -7,18 +7,36 @@ import hmac
 CHECK_PREV_TOKENS = [42, 13, 279, 785, 8251, 5517, 389, 1000, 50000, 151000]
 
 
-def keyed_uniform(key: str, prev_token: int, token: int) -> float:
-    """Return a number in [0, 1) that depends on the key, the previous token and the token.
+def keyed_uniform(key: str, prev_token: int,
+                  token: int) -> float:
+    """Return a number in [0, 1) for the key, the previous
+    token and the token.
 
-    The same inputs always give the same number. Without the key the numbers
-    look random, and they are spread evenly between 0 and 1.
+    The same inputs always give the same number. Without
+    the key the numbers look random, and they are spread
+    evenly between 0 and 1.
     """
+    # 1. Write the two tokens into one message.
     message = f"{prev_token} | {token}"
-    digest = hmac.digest(key.encode(), message.encode(), "sha256")
-    # Keep the top 53 bits: a float stores exactly 53, so nothing is rounded
-    # and the result can never reach 1.0.
-    number = int.from_bytes(digest[:8], "big") >> 11
-    return number / 2**53
+
+    # 2. HMAC turns key and message into 32 bytes.
+    key_bytes = key.encode()
+    message_bytes = message.encode()
+    digest = hmac.digest(key_bytes, message_bytes, "sha256")
+
+    # 3. Keep the first 8 bytes.
+    first_8 = digest[:8]
+
+    # 4. Read the 8 bytes as one whole number.
+    as_number = int.from_bytes(first_8, "big")
+
+    # 5. Keep the top 53 bits. A float stores exactly 53,
+    #    so nothing is rounded and the result stays below 1.
+    top_53 = as_number >> 11
+
+    # 6. Divide by 2^53 to get a number between 0 and 1.
+    result = top_53 / 2**53
+    return result
 
 
 if __name__ == "__main__":
@@ -29,13 +47,13 @@ if __name__ == "__main__":
     digest = hmac.digest(key.encode(), message.encode(), "sha256")
     first_8 = digest[:8]
     as_number = int.from_bytes(first_8, "big")
-    kept = as_number >> 11
+    top_53 = as_number >> 11
     print(f"1. message         {message}")
     print(f"2. HMAC-SHA256     {digest.hex()}")
     print(f"3. first 8 bytes   {first_8.hex()}")
     print(f"4. as a number     {as_number:,}")
-    print(f"5. keep 53 bits    {kept:,}")
-    print(f"6. divide by 2^53  {kept:,} / {2**53:,} = {kept / 2**53:.3f}")
+    print(f"5. keep 53 bits    {top_53:,}")
+    print(f"6. divide by 2^53  {top_53:,} / {2**53:,} = {top_53 / 2**53:.3f}")
     print()
 
     # Share of green tokens after each previous token
