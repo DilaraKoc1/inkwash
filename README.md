@@ -40,9 +40,10 @@ z        = (green − expected) / spread
 ```
 
 z says how many spreads the count sits above what chance would give. Longer texts written without the key land between
-−2 and 2 about 95% of the time. A bell curve puts about 3 in 100,000 above 4. The real share is a little higher,
-because with a chance of 0.25 the count leans to the right. For texts of 50 to 200 tokens, between about 5 and 15
-in 100,000 land above 4, depending on the exact length. z = 4 is the usual threshold.
+−2 and 2 about 95% of the time. A bell curve puts about 3 in 100,000 above 4, and that is the value Kirchenbauer et al.
+use. My own calculation with the exact binomial distribution gives two to five times as many: for texts of 50 to
+200 tokens, between about 5 and 15 in 100,000 score above 4, depending on the exact length. The reason is that with a
+chance of 0.25 the count leans to the right. z = 4 is the usual threshold.
 
 Without the key, the green lists look like noise. Only the key holder can check for the watermark.
 
